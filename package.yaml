@@ -1,0 +1,18 @@
+name:                clickeasy
+version:             0.1.0.0
+homepage:            https://github.com/hecke-rs/clickeasy#readme
+license:             BSD3
+author:              Erin Moon
+maintainer:          erin@hashbang.sh
+copyright:           2018 Erin Moon
+category:            Web
+extra-source-files:
+- README.md
+
+dependencies:
+  - base >= 4.7 && < 5
+
+executables:
+  clickeasy:
+    source-dirs:      src
+    main:             Main.hs
