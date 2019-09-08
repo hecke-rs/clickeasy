@@ -13,8 +13,10 @@ dependencies:
   - base >= 4.7 && < 5
   - scotty
   - wai-extra
+  - http-types
   - blaze-html
   - hedis
+  - hashids
   - text
   - bytestring
   - transformers

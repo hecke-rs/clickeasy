@@ -1,40 +1,23 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# HLINT ignore "Redundant do" #-}
+{- HLINT ignore "Redundant do" -}
 module Main where
 
 import           Web.Scotty
 
 import           Control.Monad.IO.Class
 
+import           Network.HTTP.Types.Status
 import           Network.Wai.Middleware.RequestLogger
 
-import qualified Text.Blaze.Html5              as H
-import           Text.Blaze.Html5               ( (!) )
-import           Text.Blaze.Html5.Attributes
 import           Text.Blaze.Html.Renderer.Text  ( renderHtml )
 
-import qualified Data.Text.Lazy                as LText
+
+import qualified Data.Text.Lazy as L
 
 import           Debug.Trace
 
 import           Db
-
-indexTemplate :: H.Html
-indexTemplate = H.docTypeHtml $ do
-  H.body $ do
-    H.form ! method "post" ! action "/shorten" $ do
-      H.input ! type_ "text" ! name "url"
-      H.input ! type_ "submit"
-
-shortenedTemplate :: Integer -> H.Html
-shortenedTemplate id = H.docTypeHtml $ do
-  H.body $ do
-    H.div $ do
-      "shortened to "
-      H.span ! style "color: red;" $ do
-        H.toHtml id
-    H.div $
-      H.a ! href "/" $ "another?"
+import qualified Views as V
 
 main :: IO ()
 main = do
@@ -46,12 +29,28 @@ main = do
     middleware logStdoutDev
 
     get "/" $ do
-      html $ renderHtml indexTemplate
+      html $ renderHtml V.index
 
     post "/shorten" $ do
       url           <- param "url"
       storageResult <- liftIO $ insertUrl redisConn url
 
       case storageResult of
-        Right id  -> html $ renderHtml $ shortenedTemplate id
-        Left  err -> raise $ LText.pack $ show err
+        Right id  -> html $ renderHtml $ V.shortened $ idToHash id
+        Left  err -> raise $ L.pack $ show err
+    
+    get "/:hash" $ do
+      hash <- param "hash"
+      case idFromHash hash of
+        Just id -> do
+          urlResult <- liftIO $ getUrl redisConn id
+          liftIO $ traceIO $ show urlResult
+
+          case urlResult of
+            Right url' -> case url' of
+              Just url -> redirect $ L.fromStrict url
+              Nothing -> do 
+                status status404
+                html $ renderHtml V.urlNotFound
+            Left err -> raise $ L.pack $ show err
+        Nothing -> raise "can't dehash id! fuckus :("
